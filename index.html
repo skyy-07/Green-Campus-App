@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Dashboard - Campus Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'neon-cyan': '#00f5ff',
+                        'neon-pink': '#ff006e',
+                        'neon-green': '#39ff14',
+                        'dark-bg': '#0a0a0a',
+                        'glass': 'rgba(255, 255, 255, 0.1)'
+                    }
+                } 
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-bg min-h-screen text-white overflow-x-hidden">
+    <!-- Page Load Animation -->
+    <div id="loadingScreen" class="fixed inset-0 z-50 bg-dark-bg flex items-center justify-center">
+        <div class="pulse-loader">
+            <div class="pulse-ring"></div>
+            <div class="pulse-core">⚡</div>
+        </div>
+    </div>
+
+    <!-- Glassmorphism Navbar -->
+    <nav class="fixed top-0 w-full z-40 navbar-glass">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-neon-cyan rounded-full glow-effect"></div>
+                    <h1 class="text-xl font-bold">EnergyFlow</h1>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <button class="nav-link tab-button active" data-tab="dashboard">Dashboard</button>
+                    <button class="nav-link tab-button" data-tab="analytics">Analytics</button>
+                    <button class="nav-link tab-button" data-tab="leaderboard">Leaderboard</button>
+                    <button class="nav-link tab-button" data-tab="settings">Settings</button>
+                </div>
+                <div class="md:hidden">
+                    <button class="nav-link">☰</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-20">
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <!-- Interactive Cubes Hero Section -->
+            <section class="cubes-hero-container relative h-96 md:h-[500px] overflow-hidden bg-gradient-to-b from-purple-900/20 to-dark-bg">
+                <div id="cubesContainer" class="absolute inset-0 flex items-center justify-center">
+                    <!-- Cubes will be dynamically generated here -->
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <div class="glass-panel text-center p-8 rounded-2xl border border-neon-cyan/30">
+                        <h2 class="text-4xl md:text-6xl font-bold mb-4 gradient-text">Energy Flow</h2>
+                        <p class="text-xl text-gray-300">Interactive Campus Energy Monitoring</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="container mx-auto px-6 py-12 space-y-12">
+                <!-- Usage Counter (Electricity Only) -->
+                <section class="grid grid-cols-1 md:grid-cols-2 gap-6" id="usageCounters">
+                    <div class="usage-card slide-in-left" data-delay="100">
+                        <div class="glass-panel p-6 rounded-xl border border-neon-cyan/20 hover:border-neon-cyan/50 transition-all duration-300">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-neon-cyan">Electricity Usage</h3>
+                                <div class="w-12 h-12 bg-neon-cyan/20 rounded-full flex items-center justify-center">
+                                    ⚡
+                                </div>
+                            </div>
+                            <div class="text-3xl font-bold mb-2">
+                                <span class="counter" data-target="123">0</span>
+                                <span class="text-sm text-gray-400 ml-2">kWh</span>
+                            </div>
+                            <div class="text-sm text-gray-400">Current Usage</div>
+                        </div>
+                    </div>
+
+                    <!-- Carbon Footprint Meter -->
+                    <div class="usage-card slide-in-left" data-delay="200">
+                        <div class="glass-panel p-6 rounded-xl border border-neon-green/20 hover:border-neon-green/50 transition-all duration-300">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-neon-green">Carbon Impact</h3>
+                                <div class="w-12 h-12 bg-neon-green/20 rounded-full flex items-center justify-center">
+                                    🌱
+                                </div>
+                            </div>
+                            <div class="text-3xl font-bold mb-2">
+                                <span id="carbonValue">0.72</span><!-- add the carbon value here-->
+                                <span class="text-sm text-gray-400 ml-2">tons CO₂</span>
+                            </div>
+                            <div class="text-sm text-gray-400">Carbon Footprint</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Carbon Footprint Visual Meter -->
+                <section class="slide-in-up" data-delay="300">
+                    <div class="glass-panel p-8 rounded-xl border border-neon-cyan/20">
+                        <h3 class="text-2xl font-bold mb-6 text-center">Environmental Impact</h3>
+                        <div class="flex justify-center">
+                            <div class="relative">
+                                <svg class="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"/>
+                                    <circle id="carbonProgress" cx="50" cy="50" r="40" fill="none" stroke="url(#carbonGradient)" 
+                                            stroke-width="8" stroke-linecap="round" 
+                                            stroke-dasharray="251.2" stroke-dashoffset="251.2"
+                                            class="carbon-pulse"/>
+                                    <defs>
+                                        <linearGradient id="carbonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" style="stop-color:#00f5ff"/>
+                                            <stop offset="100%" style="stop-color:#39ff14"/>
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center flex-col">
+                                    <span class="text-3xl font-bold" id="carbonDisplayValue">0.72</span>
+                                    <span class="text-sm text-gray-400">tons CO₂</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="container mx-auto px-6 py-12 space-y-12">
+                <div class="glass-panel p-8 rounded-xl border border-neon-cyan/20">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">Electricity Analytics</h2>
+                        <div class="flex space-x-4">
+                            <button class="btn btn--secondary chart-toggle active" data-type="actual">Actual</button>
+                            <button class="btn btn--secondary chart-toggle" data-type="predicted">Predicted</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="glass-panel p-6 rounded-xl border border-neon-cyan/20">
+                            <h3 class="text-xl font-bold mb-4">Usage Trends</h3>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="usageChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-xl border border-neon-green/20">
+                            <h3 class="text-xl font-bold mb-4">Detailed Metrics</h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center p-3 bg-neon-cyan/10 rounded-lg">
+                                    <span class="text-gray-300">Peak Usage</span>
+                                    <span class="font-bold text-neon-cyan">156 kWh</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-neon-green/10 rounded-lg">
+                                    <span class="text-gray-300">Efficiency</span>
+                                    <span class="font-bold text-neon-green">85%</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-neon-pink/10 rounded-lg">
+                                    <span class="text-gray-300">Cost</span>
+                                    <span class="font-bold text-neon-pink">₹500</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg">
+                                    <span class="text-gray-300">Trend</span>
+                                    <span class="font-bold text-blue-400">↓ Decreasing</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Tab -->
+        <div id="leaderboard" class="tab-content">
+            <div class="container mx-auto px-6 py-12">
+                <div class="glass-panel p-8 rounded-xl border border-neon-pink/20">
+                    <h2 class="text-3xl font-bold mb-6 text-center">🏆 Electricity Savings Leaderboard</h2>
+                    <div class="space-y-4" id="leaderboardList">
+                        <!-- Leaderboard items will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="container mx-auto px-6 py-12">
+                <div class="glass-panel p-8 rounded-xl border border-neon-cyan/20">
+                    <h2 class="text-3xl font-bold mb-8">Settings</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-6">
+                            <div class="setting-group">
+                                <label class="form-label text-lg font-semibold mb-3 block">Theme</label>
+                                <select class="form-control" id="themeSelect">
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                    <option value="auto">Auto</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label class="form-label text-lg font-semibold mb-3 block">Refresh Rate</label>
+                                <select class="form-control" id="refreshSelect">
+                                    <option value="1">1 second</option>
+                                    <option value="3" selected>3 seconds</option>
+                                    <option value="5">5 seconds</option>
+                                    <option value="10">10 seconds</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label class="form-label text-lg font-semibold mb-3 block">Units</label>
+                                <select class="form-control" id="unitsSelect">
+                                    <option value="kWh" selected>kWh</option>
+                                    <option value="MWh">MWh</option>
+                                    <option value="GWh">GWh</option>
+                                </select>
+                            </div>
+                        </div>
+                         
+                        <div class="space-y-6">
+                            <div class="setting-group">
+                                <label class="form-label text-lg font-semibold mb-3 block">Notifications</label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="notificationsToggle" checked class="sr-only">
+                                    <div class="toggle-switch"></div>
+                                    <span>Enable notifications</span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label class="form-label text-lg font-semibold mb-3 block">Sound Effects</label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="soundToggle" class="sr-only">
+                                    <div class="toggle-switch"></div>
+                                    <span>Enable sound effects</span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <button class="btn btn--primary w-full">Export Data</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
